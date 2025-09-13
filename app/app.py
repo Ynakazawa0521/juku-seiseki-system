@@ -1,22 +1,26 @@
-from dotenv import load_dotenv
 import os
 import psycopg2
-import sqlite3
 import psycopg2.extras
 from flask import Flask, render_template, request, redirect, url_for
 from datetime import date, timedelta, datetime
+from dotenv import load_dotenv
 
-# --- 環境変数を一度だけロード ---
-load_dotenv() 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+# .env ファイルから環境変数をロード
+load_dotenv()
 
 # --- Flaskアプリケーションの初期化 ---
 app = Flask(__name__)
 
-# --- データベース接続関数（PostgreSQL版） ---
+# --- データベース接続関数 ---
+# これが最も重要な変更点です。
+# 環境変数から接続文字列を読み取るようになります。
 def get_db_connection():
-    conn = psycopg2.connect('postgresql://postgres:Yuki0521@localhost:5432/postgres')   
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        raise ValueError("DATABASE_URL is not set. Please create a .env file locally.")
+    conn = psycopg2.connect(database_url)
     return conn
+
 # --- メインページ ---
 @app.route('/', methods=['GET', 'POST'])
 def title():
@@ -294,16 +298,31 @@ def update_test(test_id):
     cur.execute('UPDATE tests SET name = %s WHERE id = %s', (new_name, test_id))
     conn.commit()
     cur.close()
+    conn.close()
+    return redirect(url_for('title'))
 
-@app.route('/student/delete/<int:id>', methods=['POST'])
+@app.route('/test/<int:test_id>/delete', methods=['POST'])
+def delete_test(test_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM scores WHERE test_id = %s', (test_id,))
+    cur.execute('DELETE FROM tests WHERE id = %s', (test_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect(url_for('title'))
+
+@app.route('/student/<int:id>/delete', methods=['POST'])
 def delete_student(id):
     conn = get_db_connection()
     cur = conn.cursor()
-    # 先に関連する成績を削除
     cur.execute('DELETE FROM scores WHERE student_id = %s', (id,))
-    # その後、生徒を削除
     cur.execute('DELETE FROM students WHERE id = %s', (id,))
     conn.commit()
     cur.close()
     conn.close()
     return redirect(url_for('title'))
+
+# --- アプリケーションの実行 ---
+if __name__ == "__main__":
+    app.run(debug=True)

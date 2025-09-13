@@ -1,0 +1,5 @@
+# 環境変数
+.env
+
+# Pythonのキャッシュ
+__pycache__/
