@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }} - 印刷プレビュー</title>
+    <style>
+        /* A4用紙サイズに合わせるための基本設定 */
+        @media print {
+            body { -webkit-print-color-adjust: exact; } /* 背景色や画像を印刷に含める */
+        }
+        body {
+            font-family: 'Hiragino Mincho ProN', 'MS Mincho', serif;
+            width: 210mm; /* A4 横幅 */
+            height: 297mm; /* A4 高さ */
+            margin: 0 auto;
+            padding: 15mm;
+            box-sizing: border-box;
+            background-color: #fdfdfd;
+        }
+        .container {
+            border: 5px double #c0a060; /* 豪華な二重枠線 */
+            padding: 10mm;
+            height: calc(100% - 20mm);
+            text-align: center;
+        }
+        h1 {
+            font-size: 32px;
+            color: #333;
+            border-bottom: 2px solid #c0a060;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        h2 {
+            font-size: 24px;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            font-size: 18px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 12px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .rank {
+            font-weight: bold;
+            font-size: 20px;
+            color: #d4af37; /* 金色っぽい色 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ title }}</h1>
+        <h2>{{ subtitle }}</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">順位</th>
+                    <th style="width: 55%;">名前</th>
+                    <th style="width: 30%;">{{ score_column_name }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td class="rank">{{ loop.index }}位</td>
+                    <td>{{ record.student_name }}</td>
+                    <td>{{ "%.1f"|format(record[score_key]) if score_key == 'average_score' else record[score_key] }} 点</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

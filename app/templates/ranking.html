@@ -44,6 +44,13 @@
                     {% endfor %}
                 </tbody>
             </table>
+
+            {% if selected_test_id != 'all' %}
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="{{ url_for('print_weekly_ranking', test_date=selected_date, test_id=selected_test_id) }}" target="_blank" class="button">印刷</a>
+                </div>
+            {% endif %}
+
         {% else %}
             <p style="text-align: center;">この条件の成績データはありません。</p>
         {% endfor %}

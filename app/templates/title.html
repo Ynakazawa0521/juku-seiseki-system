@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}トップページ - 塾成績管理システム{% endblock %}
+{% block title %}トップページ - 武田塾板宿校成績管理システム{% endblock %}
 
 {% block top_nav %}
 {% endblock %}
@@ -30,15 +30,11 @@
             <button type="submit">登録</button>
         </form>
     </div>
-
     <script>
         const hamburger = document.querySelector('.hamburger-menu');
         const sidebar = document.getElementById('sidebar-menu');
         const mainContent = document.getElementById('main-content');
-        hamburger.addEventListener('click', function() {
-            sidebar.classList.toggle('open');
-            mainContent.classList.toggle('shifted');
-        });
+        hamburger.addEventListener('click', function(e) { e.stopPropagation(); sidebar.classList.toggle('open'); mainContent.classList.toggle('shifted'); });
         document.addEventListener('click', function(e) {
             if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !hamburger.contains(e.target)) {
                 sidebar.classList.remove('open');
@@ -49,11 +45,11 @@
 {% endblock %}
 
 {% block content %}
-    <h1>塾成績管理システム</h1>
+    <h1>テスト習慣継続システム</h1>
     <hr>
     <div>
         <div style="display: inline-block; vertical-align: top; margin-right: 50px;">
-            <h2>在籍生徒一覧</h2>
+            <h2>生徒一覧</h2>
             <button id="open-student-modal-btn">一覧を見る</button>
         </div>
         <div style="display: inline-block; vertical-align: top;">
@@ -61,20 +57,16 @@
             <ul>
                 {% for test in tests %}
                     <li>
-                        {{ test.name }}
-                        <a href="{{ url_for('edit_test', test_id=test.id) }}">編集</a>
-                        <form action="{{ url_for('delete_test', test_id=test.id) }}" method="POST" style="display: inline;">
-                            <button type="submit" onclick="return confirm('本当に削除しますか？');">削除</button>
-                        </form>
+                        <a href="#" class="test-manage-link" data-testid="{{ test.id }}" data-testname="{{ test.name }}">{{ test.name }}</a>
                     </li>
                 {% endfor %}
             </ul>
         </div>
     </div>
     <hr>
-    <a href="/ranking/average">平均点ランキングを見る</a>
+    <a href="/ranking/average">全体ランキングを見る</a>
     <br><br>
-    <a href="/ranking">週ごとランキングを見る</a>
+    <a href="/ranking">週間ランキングを見る</a>
     <br><br>
     <a href="/calendar">成績入力へ（日付選択）</a>
 {% endblock %}
@@ -83,7 +75,7 @@
     <div id="student-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn">&times;</span>
-            <h2>在籍生徒一覧</h2>
+            <h2>生徒一覧</h2>
             <div class="modal-list-container">
                 <ul>
                     {% for student in students %}
@@ -98,12 +90,59 @@
             </div>
         </div>
     </div>
+    <div id="test-manage-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2 id="modal-test-name"></h2>
+            <hr>
+            <form id="edit-test-form" method="POST">
+                <label for="new_test_name">新しいテスト名:</label>
+                <input type="text" id="new_test_name" name="new_test_name" required>
+                <button type="submit">更新</button>
+            </form>
+            <br>
+            <form id="delete-test-form" method="POST" onsubmit="return confirm('本当にこのテストと関連するすべての成績を削除しますか？');">
+                 <button type="submit" class="button-danger">このテストを削除する</button>
+            </form>
+        </div>
+    </div>
+
     <script>
-        const modal = document.getElementById('student-modal');
-        const openBtn = document.getElementById('open-student-modal-btn');
-        const closeBtn = document.querySelector('#student-modal .close-btn');
-        openBtn.onclick = function() { modal.style.display = "block"; }
-        closeBtn.onclick = function() { modal.style.display = "none"; }
-        window.onclick = function(event) { if (event.target == modal) { modal.style.display = "none"; } }
+        const studentModal = document.getElementById('student-modal');
+        const openStudentBtn = document.getElementById('open-student-modal-btn');
+        const closeStudentBtn = studentModal.querySelector('.close-btn');
+        openStudentBtn.onclick = function() { studentModal.style.display = "block"; }
+        closeStudentBtn.onclick = function() { studentModal.style.display = "none"; }
+        
+        const testModal = document.getElementById('test-manage-modal');
+        const testLinks = document.querySelectorAll('.test-manage-link');
+        const modalTestName = document.getElementById('modal-test-name');
+        const editForm = document.getElementById('edit-test-form');
+        const deleteForm = document.getElementById('delete-test-form');
+        const editInput = document.getElementById('new_test_name');
+        const closeTestBtn = testModal.querySelector('.close-btn');
+
+        testLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const testId = this.dataset.testid;
+                const testName = this.dataset.testname;
+
+                // テスト用のalertは削除済みです
+
+                modalTestName.textContent = `「${testName}」の管理`;
+                editInput.value = testName;
+                editForm.action = `/test/${testId}/update`;
+                deleteForm.action = `/test/${testId}/delete`;
+                
+                testModal.style.display = 'block';
+            });
+        });
+        closeTestBtn.onclick = function() { testModal.style.display = 'none'; }
+        
+        window.onclick = function(event) {
+            if (event.target == studentModal) { studentModal.style.display = "none"; }
+            if (event.target == testModal) { testModal.style.display = "none"; }
+        }
     </script>
 {% endblock %}

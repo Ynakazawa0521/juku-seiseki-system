@@ -223,70 +223,43 @@ def edit_test(test_id):
     conn.close()
     return render_template('edit_test.html', test=test)
 
-# テスト名を更新するためのルート
-@app.route('/test/update/<int:test_id>', methods=['POST'])
-def update_test(test_id):
-    new_name = request.form['new_test_name']
-    if new_name:
-        conn = get_db_connection()
-        conn.execute('UPDATE tests SET name = ? WHERE id = ?', (new_name, test_id))
-        conn.commit()
-        conn.close()
-    return redirect(url_for('title'))
-
-# テストを削除するためのルート
-@app.route('/test/delete/<int:test_id>', methods=['POST'])
-def delete_test(test_id):
-    conn = get_db_connection()
-    # テストを削除する前に、関連する成績データも削除する
-    conn.execute('DELETE FROM scores WHERE test_id = ?', (test_id,))
-    conn.execute('DELETE FROM tests WHERE id = ?', (test_id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('title'))
-
     # app.py の一番下に追加
 
 @app.route('/ranking/average')
 def average_ranking():
     conn = get_db_connection()
-    
-    # テストごと、生徒ごとの平均点、受験回数を計算するSQLクエリ
     avg_scores_data = conn.execute("""
         SELECT 
             t.id as test_id,
             t.name as test_name,
             st.name as student_name,
             AVG(s.score) as average_score,
-            COUNT(s.id) as test_count
+            COUNT(s.score) as test_count
         FROM scores s
         JOIN tests t ON s.test_id = t.id
         JOIN students st ON s.student_id = st.id
         GROUP BY t.id, st.id
         ORDER BY t.id, average_score DESC
     """).fetchall()
-    
     conn.close()
 
-    # データをテストごとに整理
     rankings_by_test = []
     processed_tests = set()
 
-    for score_data in avg_scores_data:
-        test_id = score_data['test_id']
-        if test_id not in processed_tests:
-            # 同じテストの全データを抽出
-            test_records = [r for r in avg_scores_data if r['test_id'] == test_id]
-            
-            rankings_by_test.append({
-                "test_name": score_data['test_name'],
-                "records": test_records
-            })
-            processed_tests.add(test_id)
-
+    if avg_scores_data:
+        for score in avg_scores_data:
+            test_id = score['test_id']
+            if test_id not in processed_tests:
+                test_records = [r for r in avg_scores_data if r['test_id'] == test_id]
+                
+                rankings_by_test.append({
+                    "test_id": test_id, # ▼▼▼ Add this line ▼▼▼
+                    "test_name": score['test_name'],
+                    "records": test_records
+                })
+                processed_tests.add(test_id)
+    
     return render_template('average_ranking.html', rankings_by_test=rankings_by_test)
-
-    # app.py の一番下に追加
 
 @app.route('/student/delete/<int:id>', methods=['POST'])
 def delete_student(id):
@@ -294,6 +267,102 @@ def delete_student(id):
     # 生徒を削除する前に、関連する成績データも削除します
     conn.execute('DELETE FROM scores WHERE student_id = ?', (id,))
     conn.execute('DELETE FROM students WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('title'))
+@app.route('/ranking/print')
+def print_weekly_ranking():
+    # URLから日付とテストIDを取得 (例: /ranking/print?test_date=...&test_id=...)
+    selected_date = request.args.get('test_date')
+    selected_test_id = request.args.get('test_id', 'all')
+    
+    conn = get_db_connection()
+    
+    # 元のranking()関数とほぼ同じロジックでデータを取得
+    query = """
+        SELECT st.name as student_name, s.score FROM scores s
+        JOIN students st ON s.student_id = st.id
+        WHERE s.test_date = ?
+    """
+    params = [selected_date]
+    if selected_test_id != 'all':
+        query += " AND s.test_id = ?"
+        params.append(int(selected_test_id))
+    query += " ORDER BY s.score DESC"
+    
+    records = conn.execute(query, tuple(params)).fetchall()
+    
+    # どのテストのランキングか分かるようにテスト名も取得
+    test_name = "総合"
+    if selected_test_id != 'all':
+        test = conn.execute("SELECT name FROM tests WHERE id = ?", (selected_test_id,)).fetchone()
+        test_name = test['name'] if test else "総合"
+
+    conn.close()
+
+    return render_template('ranking_print_template.html', 
+                           title="週間テストランキング",
+                           subtitle=f"{selected_date} - {test_name}",
+                           records=records,
+                           score_column_name="点数",
+                           score_key="score")
+
+@app.route('/ranking/average/print')
+def print_average_ranking():
+    # Get the selected test_id from the URL (e.g., /.../print?test_id=1)
+    selected_test_id = request.args.get('test_id', type=int)
+
+    if not selected_test_id:
+        return "A Test ID is required to print a ranking.", 400
+
+    conn = get_db_connection()
+    # Get all average score data
+    avg_scores_data = conn.execute("""
+        SELECT 
+            t.id as test_id,
+            t.name as test_name,
+            st.name as student_name,
+            AVG(s.score) as average_score
+        FROM scores s
+        JOIN tests t ON s.test_id = t.id
+        JOIN students st ON s.student_id = st.id
+        GROUP BY t.id, st.id
+        ORDER BY t.id, average_score DESC
+    """).fetchall()
+    conn.close()
+
+    # Filter the data for only the selected test
+    records_for_selected_test = [r for r in avg_scores_data if r['test_id'] == selected_test_id]
+
+    # Get the test name for the title
+    selected_test_name = ""
+    if records_for_selected_test:
+        selected_test_name = records_for_selected_test[0]['test_name']
+    
+    return render_template('ranking_print_template.html', 
+                           title="全体ランキング",
+                           subtitle=selected_test_name,
+                           records=records_for_selected_test,
+                           score_column_name="平均点",
+                           score_key="average_score")
+
+
+@app.route('/test/<int:test_id>/update', methods=['POST'])
+def update_test(test_id):
+    new_name = request.form['new_test_name']
+    conn = get_db_connection()
+    conn.execute('UPDATE tests SET name = ? WHERE id = ?', (new_name, test_id))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('title'))
+
+@app.route('/test/<int:test_id>/delete', methods=['POST'])
+def delete_test(test_id):
+    conn = get_db_connection()
+    # 関連する成績も削除
+    conn.execute('DELETE FROM scores WHERE test_id = ?', (test_id,))
+    # テスト自体を削除
+    conn.execute('DELETE FROM tests WHERE id = ?', (test_id,))
     conn.commit()
     conn.close()
     return redirect(url_for('title'))

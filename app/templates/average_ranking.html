@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}平均点ランキング{% endblock %}
+{% block title %}累計ランキング{% endblock %}
 
 {% block content %}
-    <h1 style="text-align: center;">テスト別 平均点ランキング</h1>
+    <h1 style="text-align: center;">テスト別 全体ランキング</h1>
 
     {% for ranking in rankings_by_test %}
         <div class="ranking-container">
@@ -28,6 +28,9 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <div style="text-align: center; margin-top: 10px; margin-bottom: 30px;">
+                <a href="{{ url_for('print_average_ranking', test_id=ranking.test_id) }}" target="_blank" class="button">印刷</a>
+            </div>
         </div>
     {% else %}
         <p style="text-align: center;">表示できる成績データがありません。</p>
