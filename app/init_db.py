@@ -1,10 +1,12 @@
 import os
+from dotenv import load_dotenv
 import psycopg2
 
+load_dotenv()
 # Renderは環境変数としてデータベースURLを提供します。
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-conn = psycopg2.connect(DATABASE_URL)
+conn = psycopg2.connect('postgresql://postgres:Yuki0521@localhost:5432/postgres')
 cur = conn.cursor()
 
 # SERIAL PRIMARY KEY は PostgreSQL での AUTOINCREMENT に相当します

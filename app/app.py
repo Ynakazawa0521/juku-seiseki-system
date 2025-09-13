@@ -1,19 +1,22 @@
+from dotenv import load_dotenv
 import os
-import sqlite3
 import psycopg2
+import sqlite3
 import psycopg2.extras
 from flask import Flask, render_template, request, redirect, url_for
 from datetime import date, timedelta, datetime
+
+# --- 環境変数を一度だけロード ---
+load_dotenv() 
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 # --- Flaskアプリケーションの初期化 ---
 app = Flask(__name__)
 
 # --- データベース接続関数（PostgreSQL版） ---
 def get_db_connection():
-    database_url = os.environ.get('DATABASE_URL')
-    conn = psycopg2.connect(database_url)
+    conn = psycopg2.connect('postgresql://postgres:Yuki0521@localhost:5432/postgres')   
     return conn
-
 # --- メインページ ---
 @app.route('/', methods=['GET', 'POST'])
 def title():
@@ -291,3 +294,16 @@ def update_test(test_id):
     cur.execute('UPDATE tests SET name = %s WHERE id = %s', (new_name, test_id))
     conn.commit()
     cur.close()
+
+@app.route('/student/delete/<int:id>', methods=['POST'])
+def delete_student(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    # 先に関連する成績を削除
+    cur.execute('DELETE FROM scores WHERE student_id = %s', (id,))
+    # その後、生徒を削除
+    cur.execute('DELETE FROM students WHERE id = %s', (id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect(url_for('title'))
