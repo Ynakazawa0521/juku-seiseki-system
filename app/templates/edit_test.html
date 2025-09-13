@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}テスト名の編集{% endblock %}
+
+{% block content %}
+    <h1>テスト名の編集</h1>
+
+    <form action="{{ url_for('update_test', test_id=test.id) }}" method="POST">
+        <label for="test_name">テスト名:</label>
+        <input type="text" id="test_name" name="new_test_name" value="{{ test.name }}" required>
+        <button type="submit">更新</button>
+    </form>
+{% endblock %}

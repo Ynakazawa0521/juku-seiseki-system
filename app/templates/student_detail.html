@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} の成績{% endblock %}
+
+{% block head_extra %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+    <h1>{{ student.name }} の成績推移</h1>
+
+    <form method="GET" action="{{ url_for('student_detail', student_id=student.id) }}" class="filter-form">
+        <div class="filter-nav">
+            <a href="{{ url_for('student_detail', student_id=student.id, period='1m', test_filter=selected_test_id) }}" class="{{ 'active' if current_period == '1m' }}">直近1か月</a>
+            <a href="{{ url_for('student_detail', student_id=student.id, period='3m', test_filter=selected_test_id) }}" class="{{ 'active' if current_period == '3m' }}">過去3か月</a>
+            <a href="{{ url_for('student_detail', student_id=student.id, period='all', test_filter=selected_test_id) }}" class="{{ 'active' if current_period == 'all' }}">全期間</a>
+        </div>
+        <div>
+            <label for="test_filter">テスト選択:</label>
+            <select name="test_filter" id="test_filter" onchange="this.form.submit()">
+                <option value="all" {% if selected_test_id == 'all' %}selected{% endif %}>すべてのテスト</option>
+                {% for test in tests_taken %}
+                <option value="{{ test.id }}" {% if test.id == selected_test_id %}selected{% endif %}>{{ test.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+    
+    {% for chart in charts_data %}
+        <h2>{{ chart.test_name }}</h2>
+        <div class="chart-container">
+            <canvas id="chart-{{ loop.index }}"></canvas>
+        </div>
+    {% else %}
+        <p>この期間の成績データはありません。</p>
+    {% endfor %}
+
+    <hr>
+    <h2>成績履歴</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>日付</th>
+                <th>テスト名</th>
+                <th>点数</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in score_history %}
+            <tr>
+                <td>{{ record.test_date }}</td>
+                <td>{{ record.test_name }}</td>
+                <td>{{ record.score }}点</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3">成績データがありません。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        const chartsData = {{ charts_data | tojson }};
+        chartsData.forEach((chartData, index) => {
+            const ctx = document.getElementById(`chart-${index + 1}`).getContext('2d');
+            new Chart(ctx, {
+                type: 'line', data: { labels: chartData.labels, datasets: [ { label: '個人の点数', data: chartData.scores, borderColor: 'rgb(75, 192, 192)', tension: 0.1 }, { label: '週ごとの平均点', data: chartData.averages, borderColor: 'rgb(255, 99, 132)', borderDash: [5, 5], tension: 0.1 } ] },
+                options: { scales: { y: { beginAtZero: true, max: 100 } } }
+            });
+        });
+    </script>
+{% endblock %}

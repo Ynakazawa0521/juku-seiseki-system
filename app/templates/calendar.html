@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}テスト日選択{% endblock %}
+
+{% block content %}
+    <h1>テスト日を選択してください</h1>
+
+    <div class="calendar-nav">
+        <a href="{{ url_for('calendar', year=prev_year, month=prev_month) }}">&lt; 前の月</a>
+        <span class="month-display">{{ current_month_str }}</span>
+        <a href="{{ url_for('calendar', year=next_year, month=next_month) }}">次の月 &gt;</a>
+    </div>
+
+    {% if wednesdays %}
+        <p>この月の水曜日一覧</p>
+        <ul>
+            {% for date in wednesdays %}
+                <li><a href="/entry/{{ date }}">{{ date }}</a></li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>この月にはテスト（水曜日）がありません。</p>
+    {% endif %}
+{% endblock %}

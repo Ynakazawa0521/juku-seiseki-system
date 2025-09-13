@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}トップページ - 塾成績管理システム{% endblock %}
+
+{% block top_nav %}
+{% endblock %}
+
+{% block page_sidebar %}
+    <button class="hamburger-menu">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+    </button>
+    <div id="sidebar-menu" class="sidebar">
+        <h3>メニュー</h3>
+        <hr>
+        <h3>新しい生徒の登録</h3>
+        <form action="/" method="POST">
+            <input type="hidden" name="form_type" value="student">
+            <label for="student_name">生徒名:</label>
+            <input type="text" id="student_name" name="student_name" required>
+            <button type="submit">登録</button>
+        </form>
+        <hr>
+        <h3>新しいテストの登録</h3>
+        <form action="/" method="POST">
+            <input type="hidden" name="form_type" value="test">
+            <label for="test_name">テスト名:</label>
+            <input type="text" id="test_name" name="test_name" required>
+            <button type="submit">登録</button>
+        </form>
+    </div>
+
+    <script>
+        const hamburger = document.querySelector('.hamburger-menu');
+        const sidebar = document.getElementById('sidebar-menu');
+        const mainContent = document.getElementById('main-content');
+        hamburger.addEventListener('click', function() {
+            sidebar.classList.toggle('open');
+            mainContent.classList.toggle('shifted');
+        });
+        document.addEventListener('click', function(e) {
+            if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !hamburger.contains(e.target)) {
+                sidebar.classList.remove('open');
+                mainContent.classList.remove('shifted');
+            }
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
+    <h1>塾成績管理システム</h1>
+    <hr>
+    <div>
+        <div style="display: inline-block; vertical-align: top; margin-right: 50px;">
+            <h2>在籍生徒一覧</h2>
+            <button id="open-student-modal-btn">一覧を見る</button>
+        </div>
+        <div style="display: inline-block; vertical-align: top;">
+            <h2>テスト一覧</h2>
+            <ul>
+                {% for test in tests %}
+                    <li>
+                        {{ test.name }}
+                        <a href="{{ url_for('edit_test', test_id=test.id) }}">編集</a>
+                        <form action="{{ url_for('delete_test', test_id=test.id) }}" method="POST" style="display: inline;">
+                            <button type="submit" onclick="return confirm('本当に削除しますか？');">削除</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <hr>
+    <a href="/ranking/average">平均点ランキングを見る</a>
+    <br><br>
+    <a href="/ranking">週ごとランキングを見る</a>
+    <br><br>
+    <a href="/calendar">成績入力へ（日付選択）</a>
+{% endblock %}
+
+{% block extra_scripts %}
+    <div id="student-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>在籍生徒一覧</h2>
+            <div class="modal-list-container">
+                <ul>
+                    {% for student in students %}
+                        <li>
+                            <a href="{{ url_for('student_detail', student_id=student.id) }}">{{ student.name }}</a>
+                            <form action="{{ url_for('delete_student', id=student.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" onclick="return confirm('本当に削除しますか？');">削除</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script>
+        const modal = document.getElementById('student-modal');
+        const openBtn = document.getElementById('open-student-modal-btn');
+        const closeBtn = document.querySelector('#student-modal .close-btn');
+        openBtn.onclick = function() { modal.style.display = "block"; }
+        closeBtn.onclick = function() { modal.style.display = "none"; }
+        window.onclick = function(event) { if (event.target == modal) { modal.style.display = "none"; } }
+    </script>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}平均点ランキング{% endblock %}
+
+{% block content %}
+    <h1 style="text-align: center;">テスト別 平均点ランキング</h1>
+
+    {% for ranking in rankings_by_test %}
+        <div class="ranking-container">
+            <h2 style="text-align: center;">{{ ranking.test_name }}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>順位</th>
+                        <th>生徒名</th>
+                        <th>平均点</th>
+                        <th>受験回数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in ranking.records %}
+                    <tr>
+                        <td>{{ loop.index }}位</td>
+                        <td>{{ record.student_name }}</td>
+                        <td>{{ "%.1f"|format(record.average_score) }}点</td>
+                        <td>{{ record.test_count }}回</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="text-align: center;">表示できる成績データがありません。</p>
+    {% endfor %}
+{% endblock %}

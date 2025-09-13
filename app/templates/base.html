@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>{% block title %}塾成績管理システム{% endblock %}</title>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+    {% block page_sidebar %}{% endblock %}
+
+    {% block top_nav %}
+    <div class="top-right-nav">
+        <a href="/">トップに戻る</a>
+    </div>
+    {% endblock %}
+
+    <div id="main-content" class="container">
+        {% block content %}{% endblock %}
+    </div>
+    
+    {% block extra_scripts %}{% endblock %}
+
+</body>
+</html>

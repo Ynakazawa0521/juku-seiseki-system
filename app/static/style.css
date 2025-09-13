@@ -1,0 +1,207 @@
+/* Page-wide basic settings */
+body {
+    position: relative;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    margin: 20px;
+}
+
+/* Heading styles */
+h1, h2, h3 {
+    color: #0056b3;
+}
+
+/* Link styles */
+a {
+    color: #007bff;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* Button styles */
+button, a.button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+button:hover, a.button:hover {
+    background-color: #0056b3;
+}
+
+/* Form input fields */
+input[type="text"], input[type="number"] {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Table styles */
+table {
+    border-collapse: collapse;
+    width: 90%;
+    margin: 20px auto;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: center;
+}
+th {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Horizontal rule styles */
+hr {
+    border: none;
+    border-top: 1px solid #ddd;
+}
+
+/* --- Hamburger Menu --- */
+.hamburger-menu {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 201;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: left 0.3s ease-in-out;
+}
+
+.hamburger-menu .bar {
+    display: block;
+    width: 25px;
+    height: 3px;
+    margin: 5px auto;
+    background-color: #333;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Move the icon when the menu is open */
+.sidebar.open + .hamburger-menu {
+    left: 260px; /* sidebar width (250px) + margin (10px) */
+}
+
+/* Transform the icon into an "X" when the menu is open */
+.sidebar.open + .hamburger-menu .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+.sidebar.open + .hamburger-menu .bar:nth-child(2) {
+    opacity: 0;
+}
+.sidebar.open + .hamburger-menu .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+/* --- Sidebar --- */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 250px;
+    height: 100%;
+    background-color: #fff;
+    padding: 15px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    transition: left 0.3s ease-in-out;
+    z-index: 200;
+}
+
+/* Style for when the sidebar is open */
+.sidebar.open {
+    left: 0;
+}
+
+.sidebar h3 {
+    margin-top: 10px;
+    color: #0056b3;
+    text-align: center; 
+}
+
+.sidebar form {
+    margin-top: 15px;
+}
+
+.sidebar form label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.sidebar form input[type="text"] {
+    width: calc(100% - 16px);
+    margin-bottom: 10px;
+}
+
+/* --- Main Content Container --- */
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 20px;
+    padding-left: 80px;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* Shift the content to the right when the menu is open */
+.container.shifted {
+    margin-left: 250px;
+}
+
+.top-right-nav {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+/* --- Modal Window --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.close-btn {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-list-container {
+    max-height: 400px;
+    overflow-y: auto;
+}

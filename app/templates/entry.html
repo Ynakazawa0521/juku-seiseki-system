@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}成績入力 - {{ test_date }}{% endblock %}
+
+{% block content %}
+    <h1>{{ test_date }} の成績入力</h1>
+
+    <form method="POST">
+        <table>
+            <thead>
+                <tr>
+                    <th>生徒名</th>
+                    {% for test in tests %}
+                        <th>{{ test.name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.name }}</td>
+                    {% for test in tests %}
+                    <td>
+                        <input type="number" name="score_{{ student.id }}_{{ test.id }}" 
+                               value="{{ scores.get(student.id, {}).get(test.id, '') }}">
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit">登録/更新</button>
+    </form>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}週間テストランキング{% endblock %}
+
+{% block content %}
+    <h1 style="text-align: center;">週間テストランキング</h1>
+
+    <form method="GET" action="{{ url_for('ranking') }}" class="filter-form">
+        <label for="test_date">日付選択:</label>
+        <select id="test_date" name="test_date" onchange="this.form.submit()">
+            {% for date in all_dates %}
+                <option value="{{ date }}" {% if date == selected_date %}selected{% endif %}>{{ date }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="test_id" style="margin-left: 20px;">テスト選択:</label>
+        <select id="test_id" name="test_id" onchange="this.form.submit()">
+            <option value="all" {% if selected_test_id == 'all' %}selected{% endif %}>すべてのテスト</option>
+            {% for test in all_tests %}
+                <option value="{{ test.id }}" {% if test.id == selected_test_id %}selected{% endif %}>{{ test.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <div class="ranking-container">
+        <h2 style="text-align: center;">{{ selected_date }}</h2>
+        {% for ranking in rankings_data %}
+            <h3>{{ ranking.test_name }}</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>順位</th>
+                        <th>生徒名</th>
+                        <th>点数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in ranking.records %}
+                    <tr>
+                        <td>{{ loop.index }}位</td>
+                        <td>{{ record.student_name }}</td>
+                        <td>{{ record.score }}点</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="text-align: center;">この条件の成績データはありません。</p>
+        {% endfor %}
+    </div>
+{% endblock %}
