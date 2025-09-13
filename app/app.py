@@ -5,22 +5,20 @@ from flask import Flask, render_template, request, redirect, url_for
 from datetime import date, timedelta, datetime
 from dotenv import load_dotenv
 
-# .env ファイルから環境変数をロード
+# .envファイルをロード (ローカル環境用)
 load_dotenv()
 
 # --- Flaskアプリケーションの初期化 ---
 app = Flask(__name__)
 
 # --- データベース接続関数 ---
-# これが最も重要な変更点です。
-# 環境変数から接続文字列を読み取るようになります。
+# この関数が環境変数からURLを読み取る
 def get_db_connection():
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
-        raise ValueError("DATABASE_URL is not set. Please create a .env file locally.")
+        raise ValueError("DATABASE_URL is not set. Please set it in your .env file or Render environment settings.")
     conn = psycopg2.connect(database_url)
     return conn
-
 # --- メインページ ---
 @app.route('/', methods=['GET', 'POST'])
 def title():

@@ -1,43 +1,57 @@
 import os
-from dotenv import load_dotenv
 import psycopg2
 
-load_dotenv()
-# Renderは環境変数としてデータベースURLを提供します。
+# 環境変数からデータベースURLを取得
 DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set. This is required for Render deployment.")
 
-conn = psycopg2.connect('postgresql://postgres:Yuki0521@localhost:5432/postgres')
-cur = conn.cursor()
+conn = None
+cur = None
 
-# SERIAL PRIMARY KEY は PostgreSQL での AUTOINCREMENT に相当します
-cur.execute("""
-CREATE TABLE students (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL
-);
-""")
+try:
+    # データベースに接続
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
 
-cur.execute("""
-CREATE TABLE tests (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL
-);
-""")
+    # テーブルを削除（もし存在すれば）
+    cur.execute("DROP TABLE IF EXISTS scores CASCADE;")
+    cur.execute("DROP TABLE IF EXISTS students CASCADE;")
+    cur.execute("DROP TABLE IF EXISTS tests CASCADE;")
+    
+    # 新しいテーブルを作成
+    cur.execute("""
+        CREATE TABLE students (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE tests (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE scores (
+            id SERIAL PRIMARY KEY,
+            student_id INTEGER REFERENCES students (id),
+            test_id INTEGER REFERENCES tests (id),
+            test_date DATE NOT NULL,
+            score INTEGER NOT NULL
+        );
+    """)
 
-cur.execute("""
-CREATE TABLE scores (
-    id SERIAL PRIMARY KEY,
-    student_id INTEGER NOT NULL,
-    test_id INTEGER NOT NULL,
-    score INTEGER NOT NULL,
-    test_date TEXT NOT NULL,
-    FOREIGN KEY (student_id) REFERENCES students (id),
-    FOREIGN KEY (test_id) REFERENCES tests (id)
-);
-""")
+    conn.commit()
+    print("Database tables created successfully!")
 
-conn.commit()
-cur.close()
-conn.close()
+except Exception as e:
+    print(f"Error during database initialization: {e}")
+    if conn:
+        conn.rollback()
 
-print("Database initialized successfully.")
+finally:
+    if cur:
+        cur.close()
+    if conn:
+        conn.close()
