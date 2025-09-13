@@ -1,4 +1,6 @@
-import sqlite3
+import os
+import psycopg2
+import psycopg2.extras
 from flask import Flask, render_template, request, redirect, url_for
 from datetime import date, timedelta, datetime
 
@@ -7,8 +9,8 @@ app = Flask(__name__)
 
 # --- データベース接続関数 ---
 def get_db_connection():
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
+    database_url = os.environ.get('DATABASE_URL')
+    conn = psycopg2.connect(database_url)
     return conn
 
 # --- メインページ ---
@@ -19,10 +21,10 @@ def title():
         form_type = request.form.get('form_type')
         if form_type == 'student':
             name = request.form.get('student_name')
-            if name: conn.execute('INSERT INTO students (name) VALUES (?)', (name,))
+            if name: conn.execute('INSERT INTO students (name) VALUES (%s)', (name,))
         elif form_type == 'test':
             name = request.form.get('test_name')
-            if name: conn.execute('INSERT INTO tests (name) VALUES (?)', (name,))
+            if name: conn.execute('INSERT INTO tests (name) VALUES (%s)', (name,))
         conn.commit()
         return redirect(url_for('title'))
 
@@ -65,18 +67,18 @@ def calendar():
 def entry(test_date):
     conn = get_db_connection()
     if request.method == 'POST':
-        conn.execute('DELETE FROM scores WHERE test_date = ?', (test_date,))
+        conn.execute('DELETE FROM scores WHERE test_date = %s', (test_date,))
         for key, value in request.form.items():
             if key.startswith('score_') and value:
                 _, student_id, test_id = key.split('_')
-                conn.execute('INSERT INTO scores (student_id, test_id, score, test_date) VALUES (?, ?, ?, ?)',
+                conn.execute('INSERT INTO scores (student_id, test_id, score, test_date) VALUES (%s, %s, %s, %s)',
                              (student_id, test_id, int(value), test_date))
         conn.commit()
         return redirect(url_for('entry', test_date=test_date))
 
     students = conn.execute('SELECT * FROM students ORDER BY id').fetchall()
     tests = conn.execute('SELECT * FROM tests ORDER BY id').fetchall()
-    score_data = conn.execute('SELECT student_id, test_id, score FROM scores WHERE test_date = ?', (test_date,)).fetchall()
+    score_data = conn.execute('SELECT student_id, test_id, score FROM scores WHERE test_date = %s', (test_date,)).fetchall()
     
     scores = {}
     for item in score_data:
@@ -96,7 +98,7 @@ def student_detail(student_id):
         test_filter_id = int(test_filter_id)
 
     conn = get_db_connection()
-    student = conn.execute('SELECT * FROM students WHERE id = ?', (student_id,)).fetchone()
+    student = conn.execute('SELECT * FROM students WHERE id = %s', (student_id,)).fetchone()
     
     start_date = None
     if period == '1m':
@@ -104,7 +106,7 @@ def student_detail(student_id):
     elif period == '3m':
         start_date = date.today() - timedelta(days=90)
     
-    tests_taken = conn.execute("SELECT DISTINCT t.id, t.name FROM tests t JOIN scores s ON t.id = s.test_id WHERE s.student_id = ? ORDER BY t.name", (student_id,)).fetchall()
+    tests_taken = conn.execute("SELECT DISTINCT t.id, t.name FROM tests t JOIN scores s ON t.id = s.test_id WHERE s.student_id = %s ORDER BY t.name", (student_id,)).fetchall()
     
     all_avg_scores_data = conn.execute("SELECT test_id, test_date, AVG(score) as avg_score FROM scores GROUP BY test_id, test_date").fetchall()
     averages_map = {}
@@ -239,7 +241,7 @@ def print_weekly_ranking():
     
     test_name = "総合"
     if selected_test_id != 'all':
-        test = conn.execute("SELECT name FROM tests WHERE id = ?", (selected_test_id,)).fetchone()
+        test = conn.execute("SELECT name FROM tests WHERE id = %s", (selected_test_id,)).fetchone()
         test_name = test['name'] if test else "総合"
     conn.close()
 
@@ -281,7 +283,7 @@ def print_average_ranking():
 def update_test(test_id):
     new_name = request.form['new_test_name']
     conn = get_db_connection()
-    conn.execute('UPDATE tests SET name = ? WHERE id = ?', (new_name, test_id))
+    conn.execute('UPDATE tests SET name = %s WHERE id = %s', (new_name, test_id))
     conn.commit()
     conn.close()
     return redirect(url_for('title'))
@@ -289,8 +291,8 @@ def update_test(test_id):
 @app.route('/test/<int:test_id>/delete', methods=['POST'])
 def delete_test(test_id):
     conn = get_db_connection()
-    conn.execute('DELETE FROM scores WHERE test_id = ?', (test_id,))
-    conn.execute('DELETE FROM tests WHERE id = ?', (test_id,))
+    conn.execute('DELETE FROM scores WHERE test_id = %s', (test_id,))
+    conn.execute('DELETE FROM tests WHERE id = %s', (test_id,))
     conn.commit()
     conn.close()
     return redirect(url_for('title'))
@@ -298,8 +300,8 @@ def delete_test(test_id):
 @app.route('/student/delete/<int:id>', methods=['POST'])
 def delete_student(id):
     conn = get_db_connection()
-    conn.execute('DELETE FROM scores WHERE student_id = ?', (id,))
-    conn.execute('DELETE FROM students WHERE id = ?', (id,))
+    conn.execute('DELETE FROM scores WHERE student_id = %s', (id,))
+    conn.execute('DELETE FROM students WHERE id = %s', (id,))
     conn.commit()
     conn.close()
     return redirect(url_for('title'))
