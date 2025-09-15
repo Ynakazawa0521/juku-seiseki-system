@@ -26,7 +26,7 @@ button, a.button {
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 10px 15px;
+    padding: 5px 18px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
@@ -36,10 +36,11 @@ button:hover, a.button:hover {
 }
 
 /* Form input fields */
-input[type="text"], input[type="number"] {
+input[type="text"], input[type="number"], select {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    margin-bottom: 10px;
 }
 
 /* Table styles */
@@ -76,7 +77,6 @@ hr {
     cursor: pointer;
     transition: left 0.3s ease-in-out;
 }
-
 .hamburger-menu .bar {
     display: block;
     width: 25px;
@@ -85,13 +85,9 @@ hr {
     background-color: #333;
     transition: all 0.3s ease-in-out;
 }
-
-/* Move the icon when the menu is open */
 .sidebar.open + .hamburger-menu {
-    left: 260px; /* sidebar width (250px) + margin (10px) */
+    left: 260px;
 }
-
-/* Transform the icon into an "X" when the menu is open */
 .sidebar.open + .hamburger-menu .bar:nth-child(1) {
     transform: translateY(8px) rotate(45deg);
 }
@@ -115,30 +111,23 @@ hr {
     transition: left 0.3s ease-in-out;
     z-index: 200;
 }
-
-/* Style for when the sidebar is open */
 .sidebar.open {
     left: 0;
 }
-
 .sidebar h3 {
     margin-top: 10px;
     color: #0056b3;
     text-align: center; 
 }
-
 .sidebar form {
     margin-top: 15px;
 }
-
 .sidebar form label {
     display: block;
     margin-bottom: 5px;
 }
-
-.sidebar form input[type="text"] {
+.sidebar form input[type="text"], .sidebar form select {
     width: calc(100% - 16px);
-    margin-bottom: 10px;
 }
 
 /* --- Main Content Container --- */
@@ -149,12 +138,9 @@ hr {
     padding-left: 80px;
     transition: margin-left 0.3s ease-in-out;
 }
-
-/* Shift the content to the right when the menu is open */
 .container.shifted {
     margin-left: 250px;
 }
-
 .top-right-nav {
     position: absolute;
     top: 20px;
@@ -173,7 +159,6 @@ hr {
     overflow: auto;
     background-color: rgba(0,0,0,0.4);
 }
-
 .modal-content {
     background-color: #fefefe;
     margin: 15% auto;
@@ -184,7 +169,6 @@ hr {
     border-radius: 8px;
     position: relative;
 }
-
 .close-btn {
     color: #aaa;
     position: absolute;
@@ -193,15 +177,61 @@ hr {
     font-size: 28px;
     font-weight: bold;
 }
-
 .close-btn:hover,
 .close-btn:focus {
     color: black;
     text-decoration: none;
     cursor: pointer;
 }
-
 .modal-list-container {
     max-height: 400px;
     overflow-y: auto;
+}
+.modal-list-container li {
+    line-height: 2.2;
+    list-style: none;
+    text-align: left;
+}
+
+/* --- Flash Message --- */
+.flash-message-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+}
+.flash-message {
+    display: inline-block;
+    background-color: #28a745;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 50px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.flash-message.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+/* --- AI Comment Section --- */
+.ai-comment-section {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.comment-box {
+    margin: 15px auto;
+    padding: 15px;
+    background-color: #e9f7ef;
+    border-left: 5px solid #28a745;
+    border-radius: 5px;
+    text-align: left;
+    max-width: 80%;
+    line-height: 1.6;
 }

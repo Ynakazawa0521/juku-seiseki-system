@@ -17,8 +17,20 @@
         <h3>新しい生徒の登録</h3>
         <form action="/" method="POST">
             <input type="hidden" name="form_type" value="student">
+            
             <label for="student_name">生徒名:</label>
             <input type="text" id="student_name" name="student_name" required>
+
+            <label for="grade">学年:</label>
+            <select id="grade" name="grade" required>
+                <option value="">-- 選択してください --</option>
+                <option value="中学生">中学生</option>
+                <option value="高1">高1</option>
+                <option value="高2">高2</option>
+                <option value="高3">高3</option>
+                <option value="既卒">既卒</option>
+            </select>
+            
             <button type="submit">登録</button>
         </form>
         <hr>
@@ -46,6 +58,12 @@
 
 {% block content %}
     <h1>テスト習慣継続システム</h1>
+
+    <p class="site-description">
+        ようこそ！このシステムは、日々のテスト結果を記録し、生徒一人ひとりの成長を可視化するためのツールです。<br>
+        成績の入力、グラフでの成績推移の確認、ランキングの表示、AIによる学習コメントの生成など、多彩な機能で学習をサポートします。<br>
+        まずはサイドメニューから生徒とテストを登録し、始めてみましょう。
+    </p>
     <hr>
     <div>
         <div style="display: inline-block; vertical-align: top; margin-right: 50px;">
@@ -80,7 +98,9 @@
                 <ul>
                     {% for student in students %}
                         <li>
-                            <a href="{{ url_for('student_detail', student_id=student.id) }}">{{ student.name }}</a>
+                            <a href="{{ url_for('student_detail', student_id=student.id) }}">
+                                {{ student.name }} ({{ student.grade }})
+                            </a>
                             <form action="{{ url_for('delete_student', id=student.id) }}" method="POST" style="display: inline;">
                                 <button type="submit" onclick="return confirm('本当に削除しますか？');">削除</button>
                             </form>
@@ -127,8 +147,6 @@
                 e.preventDefault();
                 const testId = this.dataset.testid;
                 const testName = this.dataset.testname;
-
-                // テスト用のalertは削除済みです
 
                 modalTestName.textContent = `「${testName}」の管理`;
                 editInput.value = testName;

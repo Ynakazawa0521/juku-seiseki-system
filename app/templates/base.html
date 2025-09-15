@@ -8,6 +8,16 @@
 </head>
 <body>
 
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-message-container">
+          {% for message in messages %}
+            <div class="flash-message">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
     {% block page_sidebar %}{% endblock %}
 
     {% block top_nav %}
@@ -20,7 +30,33 @@
         {% block content %}{% endblock %}
     </div>
     
-    {% block extra_scripts %}{% endblock %}
+    {% block extra_scripts %}
+    {% endblock %}
+
+    <script>
+        // ページ読み込み時にフラッシュメッセージを探す
+        const flashMessage = document.querySelector('.flash-message');
+
+        // メッセージが存在する場合
+        if (flashMessage) {
+            // ページが表示された直後に.visibleクラスを追加して、フェードインさせる
+            setTimeout(() => {
+                flashMessage.classList.add('visible');
+            }, 100); // わずかに待ってから実行
+
+            // 3秒後(3000ミリ秒)にフェードアウト処理を開始
+            setTimeout(() => {
+                // .visibleクラスを削除して、フェードアウトさせる
+                flashMessage.classList.remove('visible');
+                
+                // フェードアウトアニメーション(0.5秒)が終わった後に要素を完全に消す
+                setTimeout(() => {
+                    flashMessage.parentNode.remove();
+                }, 500);
+
+            }, 3000);
+        }
+    </script>
 
 </body>
 </html>

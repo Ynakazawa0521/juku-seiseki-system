@@ -8,7 +8,11 @@
 
 {% block content %}
     <h1>{{ student.name }} の成績推移</h1>
-
+    <div class="ai-comment-section">
+        <button id="generate-comment-btn" data-studentid="{{ student.id }}">AIに学習コメントを生成させる</button>
+        <div id="ai-comment-display" class="comment-box" style="display: none;"></div>
+        <div id="ai-comment-loading" style="display: none;">AIがコメントを生成中です...</div>
+    </div>
     <form method="GET" action="{{ url_for('student_detail', student_id=student.id) }}" class="filter-form">
         <div class="filter-nav">
             <a href="{{ url_for('student_detail', student_id=student.id, period='1m', test_filter=selected_test_id) }}" class="{{ 'active' if current_period == '1m' }}">直近1か月</a>
@@ -67,6 +71,42 @@
             new Chart(ctx, {
                 type: 'line', data: { labels: chartData.labels, datasets: [ { label: '個人の点数', data: chartData.scores, borderColor: 'rgb(75, 192, 192)', tension: 0.1 }, { label: '週ごとの平均点', data: chartData.averages, borderColor: 'rgb(255, 99, 132)', borderDash: [5, 5], tension: 0.1 } ] },
                 options: { scales: { y: { beginAtZero: true, max: 100 } } }
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block extra_scripts %}
+    {# ... (もし既存のスクリプトがあればそのまま) ... #}
+    <script>
+        document.getElementById('generate-comment-btn').addEventListener('click', function() {
+            const studentId = this.dataset.studentid;
+            const commentBox = document.getElementById('ai-comment-display');
+            const loadingIndicator = document.getElementById('ai-comment-loading');
+
+            // ローディング表示を開始
+            loadingIndicator.style.display = 'block';
+            commentBox.style.display = 'none';
+
+            fetch(`/student/${studentId}/generate_comment`, {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingIndicator.style.display = 'none';
+                if (data.error) {
+                    commentBox.innerText = 'エラー: ' + data.error;
+                } else {
+                    // 改行を<br>に変換して表示
+                    commentBox.innerHTML = data.comment.replace(/\n/g, '<br>');
+                }
+                commentBox.style.display = 'block';
+            })
+            .catch(error => {
+                loadingIndicator.style.display = 'none';
+                commentBox.innerText = '通信エラーが発生しました。';
+                commentBox.style.display = 'block';
+                console.error('Error:', error);
             });
         });
     </script>

@@ -1,37 +1,52 @@
 import os
 import psycopg2
 import psycopg2.extras
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from datetime import date, timedelta, datetime
 from dotenv import load_dotenv
+import google.generativeai as genai
 
 # .envファイルをロード (ローカル環境用)
 load_dotenv()
 
 # --- Flaskアプリケーションの初期化 ---
 app = Flask(__name__)
+# フラッシュメッセージを暗号化するための秘密鍵を設定
+app.secret_key = os.urandom(24)
 
 # --- データベース接続関数 ---
-# この関数が環境変数からURLを読み取る
 def get_db_connection():
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
-        raise ValueError("DATABASE_URL is not set. Please set it in your .env file or Render environment settings.")
+        raise ValueError("DATABASE_URL is not set. Please check your .env file or Render environment settings.")
     conn = psycopg2.connect(database_url)
     return conn
+
 # --- メインページ ---
 @app.route('/', methods=['GET', 'POST'])
 def title():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
     if request.method == 'POST':
         form_type = request.form.get('form_type')
+        
         if form_type == 'student':
             name = request.form.get('student_name')
-            if name: cur.execute('INSERT INTO students (name) VALUES (%s)', (name,))
+            grade = request.form.get('grade')
+            if name and grade:
+                cur.execute(
+                    'INSERT INTO students (name, grade) VALUES (%s, %s)',
+                    (name, grade)
+                )
+        
         elif form_type == 'test':
             name = request.form.get('test_name')
-            if name: cur.execute('INSERT INTO tests (name) VALUES (%s)', (name,))
+            if name:
+                cur.execute(
+                    'INSERT INTO tests (name) VALUES (%s)', (name,)
+                )
+        
         conn.commit()
         cur.close()
         conn.close()
@@ -60,7 +75,7 @@ def calendar():
     wednesdays = []
     current_day = first_day
     while current_day <= last_day:
-        if current_day.weekday() == 2:
+        if current_day.weekday() == 2: # 2 is Wednesday
             wednesdays.append(current_day.isoformat())
         current_day += timedelta(days=1)
     
@@ -77,6 +92,9 @@ def calendar():
 def entry(test_date):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    selected_grade = request.args.get('grade_filter', 'all')
+
     if request.method == 'POST':
         cur.execute('DELETE FROM scores WHERE test_date = %s', (test_date,))
         for key, value in request.form.items():
@@ -84,13 +102,24 @@ def entry(test_date):
                 _, student_id, test_id = key.split('_')
                 cur.execute('INSERT INTO scores (student_id, test_id, score, test_date) VALUES (%s, %s, %s, %s)',
                             (student_id, test_id, int(value), test_date))
+        
         conn.commit()
         cur.close()
         conn.close()
-        return redirect(url_for('entry', test_date=test_date))
+        
+        flash('登録/更新が完了しました')
+        edited_date = date.fromisoformat(test_date)
+        return redirect(url_for('calendar', year=edited_date.year, month=edited_date.month))
 
-    cur.execute('SELECT * FROM students ORDER BY id')
+    if selected_grade == 'all':
+        cur.execute('SELECT * FROM students ORDER BY id')
+    else:
+        cur.execute('SELECT * FROM students WHERE grade = %s ORDER BY id', (selected_grade,))
     students = cur.fetchall()
+    
+    cur.execute('SELECT DISTINCT grade FROM students ORDER BY grade')
+    all_grades = cur.fetchall()
+    
     cur.execute('SELECT * FROM tests ORDER BY id')
     tests = cur.fetchall()
     cur.execute('SELECT student_id, test_id, score FROM scores WHERE test_date = %s', (test_date,))
@@ -104,7 +133,14 @@ def entry(test_date):
     
     cur.close()
     conn.close()
-    return render_template('entry.html', test_date=test_date, students=students, tests=tests, scores=scores)
+    
+    return render_template('entry.html', 
+                           test_date=test_date, 
+                           students=students, 
+                           tests=tests, 
+                           scores=scores,
+                           all_grades=all_grades,
+                           selected_grade=selected_grade)
 
 @app.route('/student/<int:student_id>')
 def student_detail(student_id):
@@ -146,9 +182,15 @@ def student_detail(student_id):
         personal_scores_data = cur.fetchall()
 
         if personal_scores_data:
-            labels = [row['test_date'] for row in personal_scores_data]
-            scores = [row['score'] for row in personal_scores_data]
-            average_scores = [averages_map.get(test['id'], {}).get(date) for date in labels]
+            labels = []
+            scores = []
+            average_scores = []
+            for row in personal_scores_data:
+                dt_obj = row['test_date'] 
+                labels.append(f"{dt_obj.month}/{dt_obj.day}")
+                scores.append(row['score'])
+                average_scores.append(averages_map.get(test['id'], {}).get(row['test_date']))
+            
             charts_data.append({"test_name": test['name'], "labels": labels, "scores": scores, "averages": average_scores})
 
     history_query = "SELECT s.test_date, t.name as test_name, s.score FROM scores s JOIN tests t ON s.test_id = t.id WHERE s.student_id = %s"
@@ -158,14 +200,20 @@ def student_detail(student_id):
         history_params.append(test_filter_id)
     history_query += " ORDER BY s.test_date DESC"
     cur.execute(history_query, tuple(history_params))
-    score_history = cur.fetchall()
+    score_history_raw = cur.fetchall()
+    
+    score_history = []
+    for record in score_history_raw:
+        record_dict = dict(record)
+        dt_obj = record_dict['test_date']
+        record_dict['test_date'] = f"{dt_obj.month}/{dt_obj.day}"
+        score_history.append(record_dict)
     
     cur.close()
     conn.close()
     
     return render_template('student_detail.html', student=student, charts_data=charts_data, current_period=period, score_history=score_history, tests_taken=tests_taken, selected_test_id=test_filter_id)
 
-# --- ランキングページ ---
 @app.route('/ranking')
 def ranking():
     conn = get_db_connection()
@@ -173,21 +221,22 @@ def ranking():
 
     cur.execute("SELECT DISTINCT test_date FROM scores ORDER BY test_date DESC")
     all_dates = [row['test_date'] for row in cur.fetchall()]
+    
     cur.execute("SELECT * FROM tests ORDER BY name")
     all_tests = cur.fetchall()
     
-    selected_date = request.args.get('test_date')
+    selected_date_str = request.args.get('test_date')
     selected_test_id = request.args.get('test_id', 'all')
 
-    if not selected_date and all_dates:
+    if not selected_date_str and all_dates:
         today = date.today()
-        date_objects = [datetime.strptime(d, '%Y-%m-%d').date() for d in all_dates]
-        selected_date = min(date_objects, key=lambda d: abs(d - today)).isoformat()
+        closest_date_obj = min(all_dates, key=lambda d: abs(d - today))
+        selected_date_str = closest_date_obj.isoformat()
 
     rankings_data = []
-    if selected_date:
+    if selected_date_str:
         query = "SELECT t.name as test_name, st.name as student_name, s.score FROM scores s JOIN tests t ON s.test_id = t.id JOIN students st ON s.student_id = st.id WHERE s.test_date = %s"
-        params = [selected_date]
+        params = [selected_date_str]
         if selected_test_id != 'all':
             query += " AND s.test_id = %s"
             params.append(int(selected_test_id))
@@ -206,7 +255,12 @@ def ranking():
     cur.close()
     conn.close()
 
-    return render_template('ranking.html', rankings_data=rankings_data, all_dates=all_dates, all_tests=all_tests, selected_date=selected_date, selected_test_id=int(selected_test_id) if selected_test_id != 'all' else 'all')
+    return render_template('ranking.html', 
+                           rankings_data=rankings_data, 
+                           all_dates=[d.isoformat() for d in all_dates],
+                           all_tests=all_tests, 
+                           selected_date=selected_date_str, 
+                           selected_test_id=int(selected_test_id) if selected_test_id != 'all' else 'all')
 
 @app.route('/ranking/average')
 def average_ranking():
@@ -237,7 +291,6 @@ def average_ranking():
     conn.close()
     return render_template('average_ranking.html', rankings_by_test=rankings_by_test)
 
-# --- 印刷用ページ ---
 @app.route('/ranking/print')
 def print_weekly_ranking():
     conn = get_db_connection()
@@ -287,7 +340,6 @@ def print_average_ranking():
     conn.close()
     return render_template('ranking_print_template.html', title="平均点ランキング", subtitle=selected_test_name, records=records_for_selected_test, score_column_name="平均点", score_key="average_score")
 
-# --- データ処理（更新・削除） ---
 @app.route('/test/<int:test_id>/update', methods=['POST'])
 def update_test(test_id):
     new_name = request.form['new_test_name']
@@ -321,6 +373,57 @@ def delete_student(id):
     conn.close()
     return redirect(url_for('title'))
 
-# --- アプリケーションの実行 ---
+@app.route('/student/<int:student_id>/generate_comment', methods=['POST'])
+def generate_ai_comment(student_id):
+    try:
+        api_key = os.environ.get('GEMINI_API_KEY')
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        
+        cur.execute('SELECT * FROM students WHERE id = %s', (student_id,))
+        student = cur.fetchone()
+
+        cur.execute("""
+            SELECT t.name, s.score, s.test_date FROM scores s 
+            JOIN tests t ON s.test_id = t.id 
+            WHERE s.student_id = %s 
+            ORDER BY s.test_date DESC 
+            LIMIT 6
+        """, (student_id,))
+        scores_raw = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+
+        if not student or not scores_raw:
+            return jsonify({'error': '十分な成績データがありません。'}), 404
+
+        score_details = "\n".join([f"- {s['test_date'].month}/{s['test_date'].day}: {s['name']} - {s['score']}点" for s in scores_raw])
+        
+        prompt = f"""
+あなたは経験豊富で、生徒を勇気づけるのが得意な塾講師です。
+以下の情報を持つ生徒への、的確で前向きな学習コメントを150字程度で作成してください。
+
+# 生徒情報
+- 名前: {student['name']}
+- 学年: {student['grade']}
+
+# 最近の成績
+{score_details}
+
+# 指示
+成績の推移や傾向を分析し、良かった点を具体的に褒め、今後の学習につながるポジティブなアドバイスをしてください。
+"""
+        response = model.generate_content(prompt)
+        
+        return jsonify({'comment': response.text})
+
+    except Exception as e:
+        print(f"Error generating AI comment: {e}")
+        return jsonify({'error': 'AIコメントの生成中にエラーが発生しました。'}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)

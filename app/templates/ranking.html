@@ -22,8 +22,21 @@
         </select>
     </form>
 
+    {# ▼▼▼ 印刷ボタンをここに追加しました ▼▼▼ #}
+    {% if selected_test_id != 'all' and rankings_data %}
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="{{ url_for('print_weekly_ranking', test_date=selected_date, test_id=selected_test_id) }}" target="_blank" class="button">
+                印刷
+            </a>
+        </div>
+    {% endif %}
+    {# ▲▲▲ ここまで ▲▲▲ #}
+
+    <hr>
+
     <div class="ranking-container">
         <h2 style="text-align: center;">{{ selected_date }}</h2>
+        
         {% for ranking in rankings_data %}
             <h3>{{ ranking.test_name }}</h3>
             <table>
@@ -44,13 +57,6 @@
                     {% endfor %}
                 </tbody>
             </table>
-
-            {% if selected_test_id != 'all' %}
-                <div style="text-align: center; margin-top: 15px;">
-                    <a href="{{ url_for('print_weekly_ranking', test_date=selected_date, test_id=selected_test_id) }}" target="_blank" class="button">印刷</a>
-                </div>
-            {% endif %}
-
         {% else %}
             <p style="text-align: center;">この条件の成績データはありません。</p>
         {% endfor %}

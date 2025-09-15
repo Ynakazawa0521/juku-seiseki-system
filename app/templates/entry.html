@@ -5,7 +5,21 @@
 {% block content %}
     <h1>{{ test_date }} の成績入力</h1>
 
-    <form method="POST">
+    <form method="GET" action="{{ url_for('entry', test_date=test_date) }}" class="filter-form">
+        <label for="grade_filter">学年で絞り込み:</label>
+        <select name="grade_filter" id="grade_filter" onchange="this.form.submit()">
+            <option value="all">すべての生徒</option>
+            {% for grade in all_grades %}
+                <option value="{{ grade.grade }}" {% if grade.grade == selected_grade %}selected{% endif %}>
+                    {{ grade.grade }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+    <hr>
+
+    {# ▼▼▼ formタグにidを追加し、onsubmitイベントを追加 ▼▼▼ #}
+    <form id="score-form" method="POST" onsubmit="return validateForm()">
         <table>
             <thead>
                 <tr>
@@ -21,7 +35,8 @@
                     <td>{{ student.name }}</td>
                     {% for test in tests %}
                     <td>
-                        <input type="number" name="score_{{ student.id }}_{{ test.id }}" 
+                        {# ▼▼▼ inputタグにclassを追加 ▼▼▼ #}
+                        <input type="number" class="score-input" name="score_{{ student.id }}_{{ test.id }}" 
                                value="{{ scores.get(student.id, {}).get(test.id, '') }}">
                     </td>
                     {% endfor %}
@@ -31,4 +46,51 @@
         </table>
         <button type="submit">登録/更新</button>
     </form>
+{% endblock %}
+
+{% block top_nav %}
+    <div class="top-right-nav">
+        <a href="{{ url_for('calendar') }}">日付選択に戻る</a>
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+    {# ▼▼▼ このscriptブロックを追加・修正 ▼▼▼ #}
+    <script>
+        function validateForm() {
+            // "score-input"クラスを持つすべての入力欄を取得
+            const scoreInputs = document.querySelectorAll('.score-input');
+            let isValid = true; // フォームが有効かどうかのフラグ
+
+            // すべての入力欄をループしてチェック
+            scoreInputs.forEach(input => {
+                // 入力値が空でなければチェックを実行
+                if (input.value !== "") {
+                    const score = parseInt(input.value, 10);
+                    // 点数が0未満、または100より大きい場合は無効
+                    if (score < 0 || score > 100) {
+                        isValid = false;
+                        // 背景色を赤くして、どの入力欄がエラーか分かりやすくする
+                        input.style.backgroundColor = '#ffdddd'; 
+                    } else {
+                        // 有効な場合は背景色を元に戻す
+                        input.style.backgroundColor = ''; 
+                    }
+                } else {
+                    // 空の場合は背景色を元に戻す
+                    input.style.backgroundColor = '';
+                }
+            });
+
+            // もし無効な入力が一つでもあれば
+            if (!isValid) {
+                // エラーメッセージを表示
+                alert('点数は0から100の範囲で入力してください。');
+                // フォームの送信を中止
+                return false; 
+            }
+            // すべての入力が有効であれば、フォームを送信
+            return true; 
+        }
+    </script>
 {% endblock %}
